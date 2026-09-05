@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 · 布布助手</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/users.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        (function () {
+            var t = localStorage.getItem('da-theme') === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+</head>
+<body>
+<div id="da-users-app">
+    <div id="da-header-host"></div>
+    <main class="da-users-main">
+        <div class="da-users-page">
+            <div class="da-page-header">
+                <h2><i class="fas fa-users"></i> 用户管理</h2>
+                <button class="da-btn-primary" @click="openCreate"><i class="fas fa-plus"></i><span>新增用户</span></button>
+            </div>
+            <div class="da-users-search">
+                <div class="da-users-search-input"><i class="fas fa-search"></i><input v-model="keyword" type="search" placeholder="搜索用户名 / 昵称 / 邮箱" @keydown.enter="search"></div>
+                <select v-model="statusFilter" class="da-filter-select" @change="search"><option value="">全部状态</option><option value="1">启用</option><option value="0">禁用</option></select>
+                <button class="da-btn-primary" @click="search">搜索</button><button class="da-btn-ghost" @click="resetSearch">重置</button>
+            </div>
+            <div class="da-users-table-wrap">
+                <table class="da-users-table"><thead><tr><th>用户名</th><th>昵称</th><th>邮箱</th><th>状态</th><th>权限</th><th>最近登录</th><th>创建时间</th><th class="da-col-actions">操作</th></tr></thead>
+                <tbody>
+                <tr v-if="loading"><td colspan="8" class="da-table-empty"><i class="fas fa-spinner fa-spin"></i> 加载中…</td></tr>
+                <tr v-else-if="users.length === 0"><td colspan="8" class="da-table-empty"><i class="fas fa-inbox"></i><span>暂无用户</span></td></tr>
+                <tr v-for="user in users" :key="user.id"><td class="da-col-username">{{ user.username }}</td><td>{{ user.nickname || '—' }}</td><td>{{ user.email || '—' }}</td><td><span class="da-tag" :class="user.status === 1 ? 'success' : 'muted'">{{ user.status === 1 ? '启用' : '禁用' }}</span></td><td><div class="da-cell-tags"><span v-for="permission in (user.permissions || [])" :key="permission" class="da-tag primary">{{ permission }}</span><span v-if="!user.permissions || !user.permissions.length" class="da-muted">—</span></div></td><td class="da-col-time">{{ formatTime(user.lastLoginAt) }}</td><td class="da-col-time">{{ formatTime(user.createdAt) }}</td><td class="da-col-actions"><button class="da-action-btn" @click="openEdit(user)" title="编辑"><i class="fas fa-pen"></i></button><button class="da-action-btn" @click="openPermissions(user)" title="管理权限"><i class="fas fa-shield-halved"></i></button><button class="da-action-btn" :class="user.status === 1 ? 'warn' : 'success'" @click="toggleStatus(user)" :title="user.status === 1 ? '禁用' : '启用'"><i :class="user.status === 1 ? 'fas fa-ban' : 'fas fa-circle-check'"></i></button><button class="da-action-btn danger" @click="removeUser(user)" title="删除"><i class="fas fa-trash"></i></button></td></tr>
+                </tbody></table>
+            </div>
+            <div class="da-pagination" v-if="total > 0"><span class="da-pagination-info">共 {{ total }} 条 · 第 {{ page }} / {{ totalPages }} 页</span><div class="da-pagination-actions"><button class="da-btn-ghost" :disabled="page <= 1" @click="changePage(page - 1)"><i class="fas fa-chevron-left"></i></button><span class="da-pagination-current">{{ page }}</span><button class="da-btn-ghost" :disabled="page >= totalPages" @click="changePage(page + 1)"><i class="fas fa-chevron-right"></i></button></div></div>
+        </div>
+    </main>
+    <div v-if="formVisible" class="da-modal-mask" @click.self="closeForm"><div class="da-modal da-user-modal"><div class="da-modal-header"><h3>{{ editing ? '编辑用户' : '新增用户' }}</h3><button class="da-modal-close" @click="closeForm"><i class="fas fa-xmark"></i></button></div><div class="da-modal-body">
+        <div class="da-form-row"><label>用户名 <span v-if="!editing" class="da-required">*</span></label><input v-model="form.username" :disabled="editing" autocomplete="off" placeholder="4-32 位字母、数字或下划线"></div>
+        <div class="da-form-row" v-if="!editing"><label>密码 <span class="da-required">*</span></label><input v-model="form.password" type="password" autocomplete="new-password" placeholder="8-64 位"></div>
+        <div class="da-form-row"><label>昵称 <span class="da-required">*</span></label><input v-model="form.nickname" placeholder="显示名称"></div><div class="da-form-row"><label>邮箱</label><input v-model="form.email" type="email" placeholder="可选"></div>
+        <div class="da-form-row" v-if="editing"><label>状态</label><select v-model.number="form.status"><option :value="1">启用</option><option :value="0">禁用</option></select></div><div class="da-form-row" v-if="editing"><label>版本号 <span class="da-hint">用于防止覆盖他人修改</span></label><input v-model.number="form.version" type="number" min="1"></div>
+    </div><div class="da-modal-footer"><button class="da-btn-ghost" @click="closeForm">取消</button><button class="da-btn-primary" :disabled="saving" @click="saveUser">{{ saving ? '保存中…' : '保存' }}</button></div></div></div>
+    <div v-if="permissionVisible" class="da-modal-mask" @click.self="closePermissions"><div class="da-modal da-user-modal"><div class="da-modal-header"><h3>管理权限 · {{ permissionTarget && permissionTarget.username }}</h3><button class="da-modal-close" @click="closePermissions"><i class="fas fa-xmark"></i></button></div><div class="da-modal-body"><div v-if="permissionsLoading" class="da-table-empty"><i class="fas fa-spinner fa-spin"></i> 加载中…</div><div v-else class="da-check-group"><label v-for="permission in permissions" :key="permission.id" class="da-check-item"><input type="checkbox" :value="permission.id" v-model="selectedPermissionIds"><span class="da-check-text"><span class="da-check-title">{{ permission.permission }}</span><span class="da-check-hint">{{ permission.status === 1 ? '可用权限' : '已停用' }}</span></span></label><div v-if="permissions.length === 0" class="da-table-empty">暂无权限定义</div></div></div><div class="da-modal-footer"><button class="da-btn-ghost" @click="closePermissions">取消</button><button class="da-btn-primary" :disabled="permissionSaving" @click="savePermissions">{{ permissionSaving ? '保存中…' : '保存权限' }}</button></div></div></div>
+</div>
+<script src="js/common.js"></script><script src="js/users.js"></script>
+</body></html>

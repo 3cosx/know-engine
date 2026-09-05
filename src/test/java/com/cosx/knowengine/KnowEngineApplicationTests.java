@@ -1,5 +1,6 @@
 package com.cosx.knowengine;
 
+import com.cosx.knowengine.common.enums.DocumentStatus;
 import com.cosx.knowengine.dto.request.KnowledgeDocumentCreateRequest;
 import com.cosx.knowengine.dto.request.KnowledgeDocumentQuery;
 import com.cosx.knowengine.dto.request.KnowledgeDocumentUpdateRequest;
@@ -24,10 +25,12 @@ class KnowEngineApplicationTests {
     @Test
     void shouldCompleteDocumentLifecycle() {
         KnowledgeDocumentResponse created = service.create(
-                new KnowledgeDocumentCreateRequest("Spring Boot 4", "JDK 21 project notes", "java,spring"));
+                new KnowledgeDocumentCreateRequest(
+                        10001L, "Spring Boot 4", "JDK 21 project notes", 20001L, "markdown"));
 
         assertThat(created.id()).isNotNull();
-        assertThat(service.getById(created.id()).title()).isEqualTo("Spring Boot 4");
+        assertThat(created.status()).isEqualTo(DocumentStatus.INIT);
+        assertThat(service.getById(created.id()).documentName()).isEqualTo("Spring Boot 4");
 
         KnowledgeDocumentQuery query = new KnowledgeDocumentQuery();
         query.setKeyword("JDK 21");
@@ -36,7 +39,8 @@ class KnowEngineApplicationTests {
         KnowledgeDocumentResponse updated = service.update(
                 created.id(),
                 new KnowledgeDocumentUpdateRequest(
-                        "Spring Boot 4 Notes", "Updated content", "java", 1, created.version()));
+                        "Spring Boot 4 Notes", "Updated content", 20001L, "markdown",
+                        DocumentStatus.SAVED, 2, created.version()));
         assertThat(updated.version()).isEqualTo(created.version() + 1);
 
         service.delete(created.id());

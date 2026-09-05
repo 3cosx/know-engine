@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skills 管理 · 布布助手</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/skills.css">
+    <!-- Inter 字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        // 在 Vue 加载前应用主题，避免初始白屏闪烁（common.js 也会做一次）
+        (function () {
+            var t = localStorage.getItem('da-theme') === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+</head>
+<body>
+    <div id="da-skills-app">
+        <!-- 顶栏：由 common.js 的 renderHeader 渲染到 #da-header-host -->
+        <div id="da-header-host"></div>
+
+        <!-- 主区 -->
+        <main class="da-skills-main">
+            <div class="da-skills-page">
+                <!-- 页面头部 -->
+                <div class="da-page-header">
+                    <h2><i class="fas fa-bolt"></i> Skills 管理</h2>
+                    <div class="da-skill-upload-area"
+                         @click="triggerSkillUpload"
+                         @dragover.prevent="uploadDragOver = true"
+                         @dragleave.prevent="uploadDragOver = false"
+                         @drop.prevent="onSkillDrop"
+                         :class="{ active: uploadDragOver }">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>{{ skillUploading ? '上传中...' : '上传 Skill (.zip)' }}</span>
+                        <input ref="skillFileInputRef" type="file" style="display:none"
+                               @change="onSkillFileSelected" accept=".zip" />
+                    </div>
+                </div>
+
+                <!-- Skills 卡片网格 -->
+                <div class="da-skill-grid" v-if="skills.length">
+                    <div v-for="s in skills" :key="s.name"
+                         class="da-skill-manage-card"
+                         :class="{ disabled: !s.enabled }">
+                        <!-- 左上角：启用/禁用开关 -->
+                        <div class="da-skill-manage-top">
+                            <label class="da-skill-toggle" :title="s.enabled ? '点击禁用' : '点击启用'">
+                                <input type="checkbox" :checked="s.enabled"
+                                       @change="toggleSkill(s.name, $event.target.checked)" />
+                                <span class="da-skill-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <!-- 主体：name + desc -->
+                        <div class="da-skill-manage-body">
+                            <div class="da-skill-manage-name-row">
+                                <i class="fas fa-star"></i>
+                                <span class="da-skill-manage-name">{{ s.name }}</span>
+                            </div>
+                            <p class="da-skill-manage-desc">{{ s.description || '（无描述）' }}</p>
+                        </div>
+                        <!-- 右下角：删除按钮 -->
+                        <div class="da-skill-manage-actions">
+                            <button @click="deleteSkill(s.name)" title="删除" class="da-btn-danger">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 空状态 -->
+                <div v-else-if="!loading" class="da-skill-page-empty">
+                    <i class="fas fa-bolt"></i>
+                    <p>还没有任何 Skill，上传 .zip 文件开始</p>
+                </div>
+
+                <!-- 加载中 -->
+                <div v-else class="da-skill-page-empty">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>加载中…</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 共享工具层 -->
+    <script src="js/common.js"></script>
+    <!-- Skills 页逻辑 -->
+    <script src="js/skills.js"></script>
+</body>
+</html>

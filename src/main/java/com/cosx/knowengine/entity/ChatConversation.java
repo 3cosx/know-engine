@@ -5,20 +5,22 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.cosx.knowengine.common.enums.ConversationStatus;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @TableName("chat_conversation")
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class ChatConversation extends BaseEntity{
 
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    private String conversationId;
+    private Long conversationId;
 
     private String conversationTitle;
 
     private ConversationStatus status;
 
-    private String userId;
+    private Long userId;
 
 }

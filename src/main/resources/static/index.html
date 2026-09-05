@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>布布助手 · bubu</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
+    <link rel="stylesheet" href="css/common.css">
+    <!-- Inter 字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for code syntax highlighting（双主题，切换时由 JS 控制 disabled） -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" id="hljs-light">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css" id="hljs-dark" disabled>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
+    <!-- DOMPurify for XSS protection -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <!-- 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        // 在 Vue 加载前应用主题，避免初始白屏闪烁（common.js 也会做一次）
+        (function () {
+            var t = localStorage.getItem('da-theme') === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', t);
+            var l = document.getElementById('hljs-light');
+            var d = document.getElementById('hljs-dark');
+            if (l) l.disabled = (t === 'dark');
+            if (d) d.disabled = (t !== 'dark');
+        })();
+    </script>
+</head>
+<body>
+    <div id="da-app">
+        <!-- 顶栏：由 common.js 的 renderHeader 渲染到 #da-header-host -->
+        <div id="da-header-host"></div>
+
+        <!-- 中间区：侧栏 + 聊天主区（flex 行容器） -->
+        <div class="da-body" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+        <!-- 侧栏：新对话 + 历史会话 -->
+        <aside class="da-sidebar">
+            <button class="da-sidebar-new" @click="newConversation">
+                <i class="fas fa-plus"></i>
+                <span>新对话</span>
+            </button>
+
+            <!-- 历史会话 -->
+            <div v-if="conversations.length || conversationsTotal" class="da-sidebar-section">
+                <div class="da-sidebar-section-title">
+                    <span><i class="fas fa-clock-rotate-left"></i> 历史会话</span>
+                    <span class="da-count">{{ conversationsTotal }}</span>
+                </div>
+                <div class="da-conv-list" @scroll="onConvListScroll">
+                    <div v-for="conv in conversations" :key="conv.conversationId"
+                         class="da-conv-item"
+                         :class="{ active: conv.conversationId === conversationId }"
+                         @click="loadConversation(conv.conversationId)">
+                        <div class="da-conv-title">{{ conv.title }}</div>
+                        <div class="da-conv-meta">
+                            <span>{{ conv.messageCount }} 轮</span>
+                            <span>·</span>
+                            <span>{{ formatConvTime(conv.lastActiveAt) }}</span>
+                        </div>
+                        <button class="da-conv-delete"
+                                @click.stop="deleteConversation(conv.conversationId)"
+                                title="删除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div v-if="conversationsLoading" class="da-conv-more-hint">
+                        <i class="fas fa-spinner fa-spin"></i> 加载中…
+                    </div>
+                    <div v-else-if="!conversationsHasMore && conversations.length"
+                         class="da-conv-more-hint muted">
+                        没有更多了
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 右侧内容区：聊天主区 + 输入区（flex column） -->
+        <div class="da-content">
+
+        <!-- 主区（真正滚动容器） -->
+        <main class="da-main" ref="scroller" @scroll="onMessagesScroll">
+            <!-- 空状态 -->
+            <div v-if="messages.length === 0" class="da-empty">
+                <h1 class="da-empty-greeting">你好呀👋 有什么可以帮你的？</h1>
+                <div class="da-suggestions">
+                    <button v-for="s in suggestions" :key="s.text"
+                            class="da-suggestion-item"
+                            @click="sendMessage(s.text)">
+                        <span class="da-suggestion-icon"><i class="fas fa-message"></i></span>
+                        <span class="da-suggestion-text">{{ s.text }}</span>
+                        <i class="fas fa-arrow-right da-suggestion-arrow"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 消息列表 -->
+            <div v-else class="da-messages" ref="messagesContainer">
+                <template v-for="msg in messages" :key="msg.id">
+                    <!-- 用户消息 -->
+                    <div v-if="msg.role === 'user'" class="da-msg da-msg-user">
+                        <div class="da-avatar da-avatar-user"><i class="fas fa-user"></i></div>
+                        <div class="da-user-body">
+                            <!-- 附件缩略图条（在问题文字上方） -->
+                            <div v-if="msg.attachments && msg.attachments.length > 0" class="da-msg-attachments">
+                                <div v-for="(a, i) in msg.attachments" :key="i"
+                                     class="da-msg-attachment"
+                                     :class="{ image: /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test('.' + (a.fileType || '')) }"
+                                     :title="a.fileName"
+                                     @click="a.previewUrl && previewImage(a.previewUrl)">
+                                    <div class="da-msg-attachment-thumb">
+                                        <img v-if="a.previewUrl" :src="a.previewUrl" alt="" />
+                                        <i v-else class="fas fa-file-lines"></i>
+                                    </div>
+                                    <span class="da-msg-attachment-name">{{ a.fileName }}</span>
+                                </div>
+                            </div>
+                            <div class="da-bubble da-bubble-user">{{ msg.content }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Assistant 消息 -->
+                    <div v-else class="da-msg da-msg-assistant">
+                        <div class="da-avatar da-avatar-ai"><i class="fas fa-robot"></i></div>
+                        <div class="da-assistant-body">
+                            <!-- 时间线 -->
+                            <div v-if="msg.timeline && msg.timeline.length" class="da-timeline">
+                                <div v-for="(item, i) in msg.timeline" :key="i" class="da-timeline-item">
+                                    <div class="da-timeline-dot" :class="dotClass(item)"></div>
+                                    <div class="da-timeline-body">
+                                        <!-- todo 执行计划 -->
+                                        <div v-if="item.type === 'todo'" class="da-todo-inline">
+                                            <div class="da-todo-inline-header">
+                                                <i class="fas fa-list-check"></i>
+                                                <span class="da-todo-inline-title">执行计划</span>
+                                                <span class="da-todo-count">
+                                                    {{ completedCount(item.items) }}/{{ item.items.length }}
+                                                </span>
+                                            </div>
+                                            <div class="da-todo-inline-body">
+                                                <div v-for="(todo, ti) in item.items" :key="ti"
+                                                     :class="['da-todo-item', todo.status]">
+                                                    <i :class="todoIcon(todo.status)"></i>
+                                                    <span>{{ todo.text || todo.content }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- thinking -->
+                                        <div v-else-if="item.type === 'thinking'" class="da-thinking">
+                                            <div class="da-thinking-label">
+                                                <i class="fas fa-brain"></i> 思考
+                                            </div>
+                                            <div class="da-thinking-text markdown-body"
+                                                 v-html="renderMarkdown(item.content)"></div>
+                                        </div>
+                                        <!-- text -->
+                                        <div v-else-if="item.type === 'text'"
+                                             :class="['da-text-item markdown-body', {
+                                                 'is-streaming': msg.loading && i === msg.timeline.length - 1
+                                             }]"
+                                             v-html="renderMarkdown(item.content)"></div>
+                                        <!-- tool -->
+                                        <div v-else-if="item.type === 'tool'" class="da-tool" :class="item.status">
+                                            <i class="fas fa-wrench da-tool-icon"></i>
+                                            <span class="da-tool-name">{{ item.toolName }}</span>
+                                            <span class="da-tool-status">
+                                                <i v-if="item.status === 'running'" class="fas fa-spinner fa-spin"></i>
+                                                <i v-else-if="item.status === 'completed'" class="fas fa-check"></i>
+                                                <i v-else class="fas fa-times"></i>
+                                            </span>
+                                            <button v-if="item.arguments || item.result" class="da-tool-expand"
+                                                    @click="item.showResult = !item.showResult">
+                                                <i :class="item.showResult ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                                                {{ item.showResult ? '收起' : '查看详情' }}
+                                            </button>
+                                            <div v-if="item.showResult && (item.arguments || item.result)" class="da-tool-detail">
+                                                <div v-if="item.arguments" class="da-tool-section">
+                                                    <div class="da-tool-section-label">
+                                                        <i class="fas fa-sign-out-alt"></i> 入参
+                                                    </div>
+                                                    <pre class="da-tool-args"><code>{{ formatArguments(item.arguments) }}</code></pre>
+                                                </div>
+                                                <div v-if="item.result" class="da-tool-section">
+                                                    <div class="da-tool-section-label">
+                                                        <i class="fas fa-sign-in-alt"></i> 结果
+                                                    </div>
+                                                    <div class="da-tool-result markdown-body"
+                                                         v-html="renderMarkdown(item.result)"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- error -->
+                                        <div v-else-if="item.type === 'error'" class="da-error-item">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            <div class="da-error-body">
+                                                <div class="da-error-msg">{{ item.message }}</div>
+                                                <div v-if="item.detail" class="da-error-detail">{{ item.detail }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 图表卡片 -->
+                            <div v-for="(chart, i) in msg.charts" :key="'chart'+i" class="da-chart-card">
+                                <div class="da-card-header">
+                                    <i class="fas fa-chart-bar"></i>
+                                    <span class="da-card-title">{{ chart.title || ('图表 #' + (i + 1)) }}</span>
+                                </div>
+                                <img :src="chart.url" :alt="chart.title"
+                                     class="da-chart-img" @click="previewImage(chart.url)" />
+                            </div>
+
+                            <!-- 加载中 -->
+                            <div v-if="msg.loading" class="da-loading">
+                                <span class="da-dot"></span>
+                                <span class="da-dot"></span>
+                                <span class="da-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </main>
+
+        <!-- 滚到底浮动按钮（放在 main 外，避免被 main 的 mask 影响） -->
+        <button v-if="!autoScroll && messages.length > 0"
+                class="da-scroll-bottom-btn"
+                @click="scrollToBottomManual"
+                title="回到底部">
+            <i class="fas fa-arrow-down"></i>
+        </button>
+
+        <!-- 输入区（豆包式：textarea + 工具栏同卡片） -->
+        <footer class="da-footer">
+            <!-- 已上传文件卡片（图标/缩略图 + 名称 + 状态 + 移除） -->
+            <div class="da-file-chips" v-if="uploadedFiles.length > 0">
+                <div v-for="(f, idx) in uploadedFiles" :key="idx" class="da-file-card"
+                     :class="{ failed: f.status === 'FAILED', uploading: f.status === 'uploading', image: isImageFile(f) }">
+                    <div class="da-file-thumb">
+                        <img v-if="isImageFile(f) && fileThumb(f)" :src="fileThumb(f)" alt="" />
+                        <i v-else :class="['fas', isImageFile(f) ? 'fa-image' : 'fa-file-lines']"></i>
+                        <!-- 成功角标 √ -->
+                        <span v-if="f.status === 'SUCCESS'" class="da-file-check" title="已就绪">
+                            <i class="fas fa-check"></i>
+                        </span>
+                        <!-- 上传中遮罩 + spinner -->
+                        <div v-if="f.status === 'uploading'" class="da-file-thumb-loading">
+                            <span class="da-spinner"></span>
+                        </div>
+                        <!-- 失败标识 -->
+                        <div v-else-if="f.status === 'FAILED'" class="da-file-thumb-failed">
+                            <i class="fas fa-triangle-exclamation"></i>
+                        </div>
+                    </div>
+                    <div class="da-file-meta">
+                        <div class="da-file-name" :title="f.fileName">{{ f.fileName }}</div>
+                        <div class="da-file-sub">
+                            <span v-if="f.status === 'uploading'" class="da-file-status">上传中…</span>
+                            <span v-else-if="f.status === 'FAILED'" class="da-file-status failed">上传失败</span>
+                        </div>
+                    </div>
+                    <button class="da-file-remove" @click="removeFile(idx)" title="移除">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="da-input-wrap"
+                 :class="{ dragging: isDragging }"
+                 @dragover="onFileDragOver"
+                 @dragleave="onFileDragLeave"
+                 @drop="onFileDrop">
+                <textarea v-model="input"
+                          placeholder="输入你的问题（数据分析、联网搜索、文件分析... 可拖拽文件到此处 / Shift+Enter 换行）"
+                          @keydown.enter.exact.prevent="sendMessage()"
+                          @keydown.enter.shift.exact="input += '\n'"
+                          rows="1"
+                          ref="textareaRef"></textarea>
+                <div class="da-input-toolbar">
+                    <div class="da-input-tools-left">
+                        <label class="da-tool-btn" :class="{ active: onlineEnabled }" title="开启后允许联网搜索">
+                            <input type="checkbox" v-model="onlineEnabled" />
+                            <i class="fas fa-globe"></i>
+                            <span>{{ onlineEnabled ? '联网已开启' : '联网' }}</span>
+                        </label>
+                        <button class="da-tool-btn" @click="triggerUpload" :disabled="uploading"
+                                title="上传文档（PDF / Office / 图片，最多 3 个，每个 ≤ 100MB）">
+                            <i class="fas fa-paperclip"></i>
+                            <span>{{ uploading ? '上传中' : '文档' }}</span>
+                        </button>
+                        <input ref="fileInputRef" type="file" style="display:none" multiple
+                               @change="onFileSelected"
+                               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv,.json,.html,.htm,.xml,.rtf,.odt,.eml,.jpg,.jpeg,.png,.gif,.bmp,.webp" />
+                        <button class="da-tool-btn placeholder" title="即将上线" @click="DA.showToast('DeepResearch 即将上线')">
+                            <i class="fas fa-microscope"></i>
+                            <span>DeepResearch</span>
+                        </button>
+                    </div>
+                    <div class="da-input-tools-right">
+                        <button v-if="voiceSupported"
+                                class="da-voice-btn"
+                                :class="{ listening: isListening }"
+                                @click="toggleVoice()"
+                                :title="isListening ? '停止语音输入' : '语音输入'">
+                            <i :class="isListening ? 'fas fa-stop' : 'fas fa-microphone'"></i>
+                        </button>
+                        <button :class="['da-send-btn', { stop: sending }]"
+                                @click="sending ? stopMessage() : sendMessage()">
+                            <i :class="sending ? 'fas fa-stop' : 'fas fa-paper-plane'"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="da-footer-hint">
+                <i class="fas fa-circle-info"></i>
+                <span>自主规划执行，回答仅供参考，关键信息请仔细甄别。</span>
+            </div>
+        </footer>
+        </div><!-- /.da-content -->
+        </div><!-- /.da-body -->
+
+        <!-- 图片预览弹层 -->
+        <div v-if="previewUrl" class="da-image-preview" @click="previewUrl = null">
+            <img :src="previewUrl" alt="预览" />
+        </div>
+    </div>
+
+    <!-- 共享工具层（token / api / auth / theme / toast / renderHeader） -->
+    <script src="js/common.js"></script>
+    <!-- 聊天页逻辑 -->
+    <script src="js/chat.js"></script>
+</body>
+</html>

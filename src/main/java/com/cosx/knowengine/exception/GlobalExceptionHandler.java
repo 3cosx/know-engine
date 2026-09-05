@@ -1,11 +1,15 @@
 package com.cosx.knowengine.exception;
 
+import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
+import cn.dev33.satoken.exception.SaTokenException;
 import com.cosx.knowengine.common.result.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -19,9 +23,26 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException exception) {
-        HttpStatus status = exception.getCode() == 40400 ? HttpStatus.NOT_FOUND : HttpStatus.CONFLICT;
-        return ResponseEntity.status(status)
+        return ResponseEntity.status(exception.getStatus())
                 .body(ApiResponse.failure(exception.getCode(), exception.getMessage()));
+    }
+
+    @ExceptionHandler(NotLoginException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotLoginException(NotLoginException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.failure(40100, "登录状态无效或已过期"));
+    }
+
+    @ExceptionHandler(NotPermissionException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotPermissionException(NotPermissionException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.failure(40300, "缺少权限: " + exception.getPermission()));
+    }
+
+    @ExceptionHandler(SaTokenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSaTokenException(SaTokenException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.failure(40100, exception.getMessage()));
     }
 
     @ExceptionHandler(BindException.class)
@@ -36,6 +57,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException exception) {
         return ResponseEntity.badRequest().body(ApiResponse.failure(40000, exception.getMessage()));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.failure(40900, "数据重复或仍被其他数据引用"));
     }
 
     @ExceptionHandler(Exception.class)

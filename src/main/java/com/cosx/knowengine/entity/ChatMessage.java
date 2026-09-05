@@ -2,15 +2,20 @@ package com.cosx.knowengine.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.cosx.knowengine.common.enums.MessageType;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-public class ChatMessage {
+@Data
+@EqualsAndHashCode(callSuper = true)
+@TableName("chat_message")
+public class ChatMessage extends BaseEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;
 
-
-    private String conversationId;
+    private Long conversationId;
 
     private String question;
 
@@ -20,9 +25,8 @@ public class ChatMessage {
 
     private String sectionIds;
 
-
     private MessageType status;
 
-    private String userId;
+    private Long userId;
 
 }

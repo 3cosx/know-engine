@@ -2,6 +2,7 @@ package com.cosx.knowengine.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cosx.knowengine.common.enums.DocumentStatus;
 import com.cosx.knowengine.common.result.PageResponse;
 import com.cosx.knowengine.dto.request.KnowledgeDocumentCreateRequest;
 import com.cosx.knowengine.dto.request.KnowledgeDocumentQuery;
@@ -33,10 +34,13 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
     @CacheEvict(cacheNames = CACHE_NAME, allEntries = true)
     public KnowledgeDocumentResponse create(KnowledgeDocumentCreateRequest request) {
         KnowledgeDocument document = new KnowledgeDocument();
-        document.setTitle(request.title());
+        document.setDocumentId(request.documentId());
+        document.setDocumentName(request.documentName());
         document.setContent(request.content());
-        document.setTags(request.tags());
-        document.setStatus(1);
+        document.setStatus(DocumentStatus.INIT);
+        document.setDocumentUser(request.documentUser());
+        document.setDocumentType(request.documentType());
+        document.setSegmentNumbers(0);
         document.setVersion(1);
         mapper.insert(document);
         return KnowledgeDocumentResponse.from(document);
@@ -57,14 +61,14 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         LambdaQueryWrapper<KnowledgeDocument> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.and(condition -> condition
-                    .like(KnowledgeDocument::getTitle, query.getKeyword())
+                    .like(KnowledgeDocument::getDocumentName, query.getKeyword())
                     .or()
                     .like(KnowledgeDocument::getContent, query.getKeyword())
                     .or()
-                    .like(KnowledgeDocument::getTags, query.getKeyword()));
+                    .like(KnowledgeDocument::getDocumentType, query.getKeyword()));
         }
         wrapper.eq(query.getStatus() != null, KnowledgeDocument::getStatus, query.getStatus())
-                .orderByDesc(KnowledgeDocument::getCreatedAt);
+                .orderByDesc(KnowledgeDocument::getCreateTime);
 
         Page<KnowledgeDocument> page = mapper.selectPage(
                 Page.of(query.getPage(), query.getSize()), wrapper);
@@ -81,10 +85,12 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
 
         KnowledgeDocument document = new KnowledgeDocument();
         document.setId(id);
-        document.setTitle(request.title());
+        document.setDocumentName(request.documentName());
         document.setContent(request.content());
-        document.setTags(request.tags());
+        document.setDocumentUser(request.documentUser());
+        document.setDocumentType(request.documentType());
         document.setStatus(request.status());
+        document.setSegmentNumbers(request.segmentNumbers());
         document.setVersion(request.version());
         if (mapper.updateById(document) != 1) {
             throw BusinessException.conflict("数据已被其他请求修改，请刷新后重试");

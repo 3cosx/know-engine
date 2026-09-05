@@ -1,0 +1,829 @@
+/* =============================================================================
+ * 用户管理页专属样式（仅 users.html 使用）。
+ *
+ * 通用样式（变量、顶栏、按钮等）请在 common.css 中查看。
+ * ========================================================================== */
+
+/* ============== 整体布局 ============== */
+#da-users-app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-page);
+}
+
+.da-users-main {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* ============== 页面容器 ============== */
+.da-users-page {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 20px 40px;
+}
+
+/* ============== 搜索栏 ============== */
+.da-users-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.da-users-search-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    max-width: 360px;
+}
+
+.da-users-search-input i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 13px;
+    pointer-events: none;
+}
+
+.da-users-search-input input {
+    width: 100%;
+    height: 36px;
+    padding: 0 12px 0 34px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.da-users-search-input input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-bg);
+}
+
+.da-filter-select {
+    height: 36px;
+    min-width: 108px;
+    padding: 0 30px 0 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font: inherit;
+    outline: none;
+}
+
+.da-filter-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-bg);
+}
+
+/* ============== 表格 ============== */
+.da-users-table-wrap {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.da-users-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+}
+
+.da-users-table thead th {
+    padding: 12px 14px;
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.da-users-table tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    vertical-align: middle;
+}
+
+.da-users-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.da-users-table tbody tr:hover {
+    background: var(--bg-muted);
+}
+
+.da-col-username {
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.da-col-time {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.da-col-actions {
+    text-align: center;
+    white-space: nowrap;
+    width: 220px;
+}
+
+.da-users-table thead th.da-col-actions {
+    text-align: center;
+}
+
+/* ============== 行内操作按钮 ============== */
+.da-action-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all .15s;
+    margin: 0 2px;
+}
+
+.da-action-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: var(--primary-bg);
+}
+
+.da-action-btn.danger:hover {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+    background: var(--danger-bg);
+}
+
+/* 启用/禁用切换按钮：warn=禁用（橙），success=启用（绿） */
+.da-action-btn.warn:hover {
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+    background: var(--warning-bg);
+}
+
+.da-action-btn.success:hover {
+    border-color: var(--success-color);
+    color: var(--success-color);
+    background: var(--success-bg);
+}
+
+/* ============== 标签 ============== */
+.da-cell-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 240px;
+}
+
+.da-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+}
+
+.da-tag.success {
+    background: var(--success-bg);
+    color: var(--success-color);
+}
+
+.da-tag.muted {
+    background: var(--bg-muted);
+    color: var(--text-muted);
+}
+
+.da-tag.primary {
+    background: var(--primary-bg);
+    color: var(--primary-hover);
+}
+
+.da-tag.info {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+}
+
+[data-theme="dark"] .da-tag.info {
+    background: rgba(129, 140, 248, 0.15);
+    color: #a5b4fc;
+}
+
+.da-muted {
+    color: var(--text-muted);
+}
+
+/* ============== 空状态 ============== */
+.da-table-empty {
+    text-align: center;
+    padding: 48px 20px !important;
+    color: var(--text-muted);
+}
+
+.da-table-empty i {
+    font-size: 32px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* ============== 分页 ============== */
+.da-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.da-pagination-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.da-pagination-actions .da-btn-ghost {
+    min-width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.da-pagination-actions .da-btn-ghost:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.da-pagination-current {
+    min-width: 32px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+/* ============== 弹窗（通用）============== */
+.da-modal-mask {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-overlay);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    animation: da-modal-fade .2s;
+    padding: 20px;
+}
+
+@keyframes da-modal-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.da-modal {
+    background: var(--bg-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    animation: da-modal-slide .25s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid var(--border-color);
+}
+
+@keyframes da-modal-slide {
+    from { transform: translateY(12px) scale(0.98); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.da-user-modal {
+    max-width: 620px;
+}
+
+/* ============== 个人档案区块 ============== */
+.da-form-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-color);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.da-form-section-title i {
+    color: var(--primary-color);
+    font-size: 12px;
+}
+
+.da-profile-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 12px;
+}
+
+.da-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.da-modal-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.da-modal-header h3 i {
+    color: var(--primary-color);
+    font-size: 14px;
+}
+
+.da-modal-close {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: var(--radius-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all .15s;
+}
+
+.da-modal-close:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+}
+
+.da-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 22px 24px;
+}
+
+.da-modal-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* ============== 表单 ============== */
+.da-form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.da-form-row > label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.da-required {
+    color: var(--danger-color);
+}
+
+.da-hint {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.da-form-row input,
+.da-form-row select {
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    width: 100%;
+}
+
+.da-form-row input:focus,
+.da-form-row select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-bg);
+}
+
+.da-form-row input:disabled {
+    background: var(--bg-muted);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+/* ============== 密码输入框（带眼睛按钮）============== */
+.da-pwd-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.da-pwd-wrap input {
+    padding-right: 40px !important;
+}
+
+.da-pwd-toggle {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: var(--radius-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all .15s;
+}
+
+.da-pwd-toggle:hover {
+    background: var(--bg-muted);
+    color: var(--text-primary);
+}
+
+/* ============== 多选组 ============== */
+.da-check-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-muted);
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.da-check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--text-primary);
+    user-select: none;
+    padding: 7px 8px;
+    border-radius: var(--radius-xs);
+    transition: background .15s;
+}
+
+.da-check-item:hover {
+    background: var(--bg-surface);
+}
+
+.da-check-item input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.da-check-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.da-check-title {
+    font-weight: 500;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.da-role-code {
+    font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    font-weight: 400;
+}
+
+.da-check-hint {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    line-height: 1.4;
+}
+
+.da-check-hint i {
+    color: var(--primary-color);
+    font-size: 10.5px;
+}
+
+.da-check-hint-detail {
+    color: var(--text-muted);
+    opacity: 0.85;
+}
+
+/* ============== 部门树 ============== */
+.da-dept-tree {
+    gap: 4px;
+}
+
+.da-dept-node {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    font-size: 13.5px;
+    transition: background .15s;
+}
+
+.da-dept-node:hover {
+    background: var(--bg-surface);
+}
+
+.da-dept-toggle {
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 10px;
+    transition: transform .15s;
+    flex-shrink: 0;
+}
+
+.da-dept-toggle.expanded {
+    transform: rotate(90deg);
+}
+
+.da-dept-toggle.empty {
+    visibility: hidden;
+}
+
+.da-dept-node input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.da-dept-children {
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* ============== 响应式 ============== */
+@media (max-width: 768px) {
+    .da-users-table {
+        font-size: 12.5px;
+    }
+    .da-users-table thead th,
+    .da-users-table tbody td {
+        padding: 10px 8px;
+    }
+    .da-cell-tags {
+        max-width: 140px;
+    }
+    .da-modal {
+        max-width: calc(100vw - 32px);
+    }
+    .da-col-actions {
+        width: auto;
+    }
+}
+
+/* ============== 通用确认弹窗 ============== */
+.da-confirm-modal {
+    max-width: 400px;
+}
+
+.da-confirm-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin: 4px auto 14px;
+}
+
+.da-confirm-icon.warn {
+    background: var(--warning-bg);
+    color: var(--warning-color);
+}
+
+.da-confirm-icon.danger {
+    background: var(--danger-bg);
+    color: var(--danger-color);
+}
+
+.da-confirm-icon.success {
+    background: var(--success-bg);
+    color: var(--success-color);
+}
+
+.da-confirm-icon.info {
+    background: var(--primary-bg);
+    color: var(--primary-color);
+}
+
+.da-confirm-title {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 8px;
+}
+
+.da-confirm-body {
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 8px;
+    white-space: pre-line;
+}
+
+.da-confirm-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.da-confirm-modal .da-modal-body {
+    padding: 24px 24px 18px;
+}
+
+.da-confirm-modal .da-modal-footer {
+    justify-content: center;
+    border-top: none;
+    padding-top: 0;
+}
+
+.da-confirm-modal .da-modal-footer .da-btn-ghost,
+.da-confirm-modal .da-modal-footer .da-btn-primary {
+    min-width: 96px;
+}
+
+/* danger 风格的确认按钮 */
+.da-btn-danger {
+    height: 36px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--danger-color);
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: opacity .15s, transform .15s;
+}
+
+.da-btn-danger:hover {
+    opacity: 0.9;
+}
+
+.da-btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* warn 风格的确认按钮 */
+.da-btn-warn {
+    height: 36px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--warning-color);
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: opacity .15s;
+}
+
+.da-btn-warn:hover {
+    opacity: 0.9;
+}
+
+.da-btn-warn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===================== 密码"已设置"徽标（编辑场景）===================== */
+.da-pwd-set-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--success-bg, #ECFDF5);
+    color: var(--success-color, #059669);
+    border: 1px solid var(--success-border, #A7F3D0);
+}
+.da-pwd-set-badge i { font-size: 11px; }
+
+/* ===================== 个人档案表单网格 ===================== */
+.da-profile-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+}
+.da-profile-form-grid input,
+.da-profile-form-grid select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-light, #e2e8f0);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--bg-input, #fff);
+    color: var(--text-primary, #1e293b);
+}
+.da-profile-form-grid input:focus,
+.da-profile-form-grid select:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+.da-profile-form-full {
+    grid-column: 1 / -1;
+}

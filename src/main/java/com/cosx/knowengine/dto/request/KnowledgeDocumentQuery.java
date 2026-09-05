@@ -1,8 +1,11 @@
 package com.cosx.knowengine.dto.request;
 
+import com.cosx.knowengine.common.enums.DocumentStatus;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import lombok.Data;
 
+@Data
 public class KnowledgeDocumentQuery {
 
     @Min(value = 1, message = "页码必须大于 0")
@@ -14,39 +17,6 @@ public class KnowledgeDocumentQuery {
 
     private String keyword;
 
-    @Min(value = 0, message = "状态只能是 0 或 1")
-    @Max(value = 1, message = "状态只能是 0 或 1")
-    private Integer status;
+    private DocumentStatus status;
 
-    public long getPage() {
-        return page;
-    }
-
-    public void setPage(long page) {
-        this.page = page;
-    }
-
-    public long getSize() {
-        return size;
-    }
-
-    public void setSize(long size) {
-        this.size = size;
-    }
-
-    public String getKeyword() {
-        return keyword;
-    }
-
-    public void setKeyword(String keyword) {
-        this.keyword = keyword;
-    }
-
-    public Integer getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
 }

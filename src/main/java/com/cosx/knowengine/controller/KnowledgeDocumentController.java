@@ -1,5 +1,6 @@
 package com.cosx.knowengine.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.cosx.knowengine.common.result.ApiResponse;
 import com.cosx.knowengine.common.result.PageResponse;
 import com.cosx.knowengine.dto.request.KnowledgeDocumentCreateRequest;
@@ -33,6 +34,7 @@ public class KnowledgeDocumentController {
     }
 
     @PostMapping
+    @SaCheckPermission("NORMAL")
     public ResponseEntity<ApiResponse<KnowledgeDocumentResponse>> create(
             @Valid @RequestBody KnowledgeDocumentCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -40,18 +42,21 @@ public class KnowledgeDocumentController {
     }
 
     @GetMapping("/{id}")
+    @SaCheckPermission("NORMAL")
     public ApiResponse<KnowledgeDocumentResponse> getById(
             @Positive(message = "ID 必须大于 0") @PathVariable Long id) {
         return ApiResponse.success(service.getById(id));
     }
 
     @GetMapping
+    @SaCheckPermission("NORMAL")
     public ApiResponse<PageResponse<KnowledgeDocumentResponse>> page(
             @Valid KnowledgeDocumentQuery query) {
         return ApiResponse.success(service.page(query));
     }
 
     @PutMapping("/{id}")
+    @SaCheckPermission("NORMAL")
     public ApiResponse<KnowledgeDocumentResponse> update(
             @Positive(message = "ID 必须大于 0") @PathVariable Long id,
             @Valid @RequestBody KnowledgeDocumentUpdateRequest request) {
@@ -59,6 +64,7 @@ public class KnowledgeDocumentController {
     }
 
     @DeleteMapping("/{id}")
+    @SaCheckPermission("NORMAL")
     public ApiResponse<Void> delete(
             @Positive(message = "ID 必须大于 0") @PathVariable Long id) {
         service.delete(id);
