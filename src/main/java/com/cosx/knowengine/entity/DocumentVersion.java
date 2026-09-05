@@ -33,8 +33,6 @@ public class DocumentVersion extends BaseEntity {
 
     private DocumentStatus documentStatus;
 
-    private Long documentUser;
-
     private String documentType;
 
     private Integer segmentNumbers;
