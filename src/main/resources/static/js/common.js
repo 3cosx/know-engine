@@ -33,7 +33,6 @@
         if (!url || url.startsWith('/v1/')) return url;
         if (url.startsWith('/api/')) return url.slice(4);
         if (url.startsWith('/auth/')) return '/v1' + url;
-        if (url.startsWith('/knowledge-documents')) return '/v1' + url;
         if (url.startsWith('/sys/user/list')) return '/v1/users' + url.slice('/sys/user/list'.length);
         if (url.startsWith('/sys/user')) return url.replace('/sys/user', '/v1/users');
         if (url.startsWith('/sys/permission')) return url.replace('/sys/permission', '/v1/permissions');
@@ -238,7 +237,10 @@
         }
         if (!resp.ok) {
             const msg = (json && (json.message || json.msg)) || ('HTTP ' + resp.status);
-            throw new Error(msg);
+            const error = new Error(msg);
+            error.status = resp.status;
+            error.response = json;
+            throw error;
         }
         return json;
     }
@@ -378,7 +380,7 @@
      * 渲染公共顶栏（登录后的所有页面都用）。
      *
      * @param {Object} options
-     *        - active: 当前激活的菜单 key（'chat' | 'skills' | 'users'）
+     *        - active: 当前激活的菜单 key（'chat' | 'documents' | 'skills' | 'users'）
      *        - user: 当前用户对象（含 nickname/username/roles）
      *        - sidebarToggle: 是否显示侧栏折叠按钮（仅聊天页用）
      */
@@ -394,7 +396,8 @@
             : (nick || '游客');
 
         const navItems = [
-            { key: 'chat', href: 'index.html', icon: 'fa-comment-dots', text: '聊天' }
+            { key: 'chat', href: 'index.html', icon: 'fa-comment-dots', text: '聊天' },
+            { key: 'documents', href: 'documents.html', icon: 'fa-file-lines', text: '文档' }
         ];
         if (isAdminUser) {
             navItems.push({ key: 'skills', href: 'skills.html', icon: 'fa-bolt', text: 'Skills' });

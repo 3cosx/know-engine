@@ -3,7 +3,7 @@ package com.cosx.knowengine.config;
 import cn.dev33.satoken.interceptor.SaInterceptor;
 import cn.dev33.satoken.router.SaRouter;
 import cn.dev33.satoken.stp.StpUtil;
-import com.cosx.knowengine.security.CurrentUserInterceptor;
+import com.cosx.knowengine.user.security.CurrentUserInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;

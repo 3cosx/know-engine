@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文档详情 · 布布助手</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/documents.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('da-theme')==='dark'?'dark':'light');})();</script>
+</head>
+<body>
+<div id="da-document-detail-app" v-cloak>
+    <div id="da-header-host"></div>
+    <main class="doc-main">
+        <div class="doc-page">
+            <a class="doc-back" href="documents.html"><i class="fas fa-arrow-left"></i> 返回文档</a>
+            <div class="doc-detail-top" v-if="document">
+                <div>
+                    <h1 class="doc-title">{{ document.documentName }}</h1>
+                    <div class="doc-summary">
+                        <span class="doc-status" :class="statusClass(document.documentStatus)"><i :class="statusIcon(document.documentStatus)"></i>{{ document.documentStatusName }}</span>
+                        <span><i class="fas fa-code-branch"></i>{{ document.version }}</span>
+                        <span><i class="far fa-file"></i>{{ document.documentType || '未知类型' }}</span>
+                        <span><i class="fas fa-layer-group"></i>{{ document.segmentNumbers }} 个分段</span>
+                        <span><i class="far fa-clock"></i>{{ formatDate(document.updatedAt) }}</span>
+                    </div>
+                </div>
+                <div class="doc-detail-actions">
+                    <button class="doc-command" @click="refresh" title="刷新"><i class="fas fa-rotate-right" :class="{'fa-spin': loading}"></i><span>刷新</span></button>
+                    <button class="doc-command primary" @click="openVersionModal"><i class="fas fa-file-arrow-up"></i><span>上传新版本</span></button>
+                </div>
+            </div>
+
+            <section class="segment-section">
+                <div class="segment-heading"><h3>文档分段</h3><span class="segment-tokens">共 {{ total }} 项</span></div>
+                <div class="segment-list" v-if="segments.length">
+                    <article class="segment-item" v-for="segment in segments" :key="segment.chunkId">
+                        <div class="segment-index">#{{ segment.segmentIndex + 1 }}</div>
+                        <pre class="segment-content">{{ segment.segmentContent }}</pre>
+                        <div class="segment-meta"><span class="doc-status" :class="statusClass(segment.status)">{{ segment.statusName }}</span><span class="segment-tokens">{{ segment.tokenCount || 0 }} tokens</span></div>
+                        <div class="segment-actions">
+                            <button class="doc-icon-btn" title="编辑分段" @click="openEdit(segment)" :disabled="isBusy(segment)"><i class="fas fa-pen"></i></button>
+                            <button v-if="canVectorize(segment)" class="doc-icon-btn" :title="segment.status === 'failed' ? '重试向量化' : '向量化'" @click="vectorize(segment)"><i :class="segment.status === 'failed' ? 'fas fa-rotate-right' : 'fas fa-wand-magic-sparkles'"></i></button>
+                            <button v-else-if="segment.status === 'embedding'" class="doc-icon-btn" disabled title="向量化中"><i class="fas fa-circle-notch fa-spin"></i></button>
+                        </div>
+                    </article>
+                </div>
+                <div class="doc-empty" v-else-if="!loading"><i class="fas fa-layer-group"></i><p>暂无分段</p></div>
+                <div class="doc-empty" v-else><i class="fas fa-spinner fa-spin"></i><p>正在加载</p></div>
+                <div class="doc-pagination" v-if="total > 0"><span>第 {{ page }} 页</span><div><button class="doc-icon-btn" @click="changePage(-1)" :disabled="page<=1" title="上一页"><i class="fas fa-chevron-left"></i></button><span>{{ page }} / {{ pages }}</span><button class="doc-icon-btn" @click="changePage(1)" :disabled="page>=pages" title="下一页"><i class="fas fa-chevron-right"></i></button></div></div>
+            </section>
+        </div>
+    </main>
+
+    <div class="doc-modal-backdrop" v-if="editing" @click.self="closeEdit">
+        <div class="doc-modal"><div class="doc-modal-header"><h3>编辑分段 #{{ editing.segmentIndex + 1 }}</h3><button class="doc-icon-btn" @click="closeEdit" title="关闭"><i class="fas fa-xmark"></i></button></div><div class="doc-field"><label for="segment-content">分段内容</label><textarea id="segment-content" v-model="editContent"></textarea></div><div class="doc-modal-actions"><button class="doc-command" @click="closeEdit">取消</button><button class="doc-command primary" @click="saveEdit" :disabled="saving"><i :class="saving ? 'fas fa-spinner fa-spin' : 'fas fa-check'"></i>创建 {{ nextPatchVersion }}</button></div></div>
+    </div>
+
+    <div class="doc-modal-backdrop" v-if="versionModal" @click.self="closeVersionModal">
+        <div class="doc-modal"><div class="doc-modal-header"><h3>上传新版本</h3><button class="doc-icon-btn" @click="closeVersionModal" title="关闭"><i class="fas fa-xmark"></i></button></div><div class="doc-field"><label for="version-file">文件</label><input id="version-file" type="file" @change="versionFile=$event.target.files[0]" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.html"></div><div class="doc-field"><label for="increment">版本升级</label><select id="increment" v-model="increment"><option value="PATCH">PATCH · 内容修正</option><option value="MINOR">MINOR · 内容扩展</option><option value="MAJOR">MAJOR · 重大调整</option></select></div><div class="doc-modal-actions"><button class="doc-command" @click="closeVersionModal">取消</button><button class="doc-command primary" @click="uploadVersion" :disabled="versionUploading || !versionFile"><i :class="versionUploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'"></i>上传</button></div></div>
+    </div>
+</div>
+<script src="js/common.js"></script>
+<script src="js/document-detail.js"></script>
+</body>
+</html>

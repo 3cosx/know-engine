@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cosx.knowengine.document.persistence.mapper.DocumentVersionMapper">
+
+    <select id="selectDuplicateByUserAndSourceHash"
+            resultType="com.cosx.knowengine.document.entity.DocumentVersion">
+        SELECT dv.*
+        FROM document_version dv
+        INNER JOIN knowledge_document kd ON kd.document_id = dv.document_id
+        WHERE kd.document_user = #{documentUser}
+          AND dv.source_hash = #{sourceHash}
+          AND kd.is_deleted = 0
+          AND dv.is_deleted = 0
+        ORDER BY dv.create_time DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectCurrentVersionForUpdate"
+            resultType="com.cosx.knowengine.document.entity.DocumentVersion">
+        SELECT dv.*
+        FROM document_version dv
+        INNER JOIN knowledge_document kd
+            ON kd.current_version_id = dv.document_version_id
+           AND kd.document_id = dv.document_id
+        WHERE kd.document_id = #{documentId}
+          AND kd.is_deleted = 0
+          AND dv.is_deleted = 0
+        FOR UPDATE
+    </select>
+
+    <select id="selectDocumentPage"
+            resultType="com.cosx.knowengine.document.persistence.model.DocumentSummaryRow">
+        SELECT kd.document_id,
+               kd.current_version_id AS current_document_version_id,
+               dv.version_no,
+               dv.document_name,
+               dv.document_type,
+               dv.document_status,
+               dv.segment_numbers,
+               dv.update_time
+        FROM knowledge_document kd
+        INNER JOIN document_version dv
+            ON dv.document_version_id = kd.current_version_id
+           AND dv.document_id = kd.document_id
+        WHERE kd.is_deleted = 0
+          AND dv.is_deleted = 0
+        <if test="documentUser != null">
+            AND kd.document_user = #{documentUser}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND dv.document_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="status != null and status != ''">
+            AND dv.document_status = #{status}
+        </if>
+        ORDER BY dv.update_time DESC
+    </select>
+
+</mapper>

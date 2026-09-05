@@ -1,7 +1,7 @@
 package com.cosx.knowengine.config;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
-import com.cosx.knowengine.security.UserContextHolder;
+import com.cosx.knowengine.user.security.UserContextHolder;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.stereotype.Component;
 

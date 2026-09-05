@@ -62,15 +62,16 @@ CREATE TABLE IF NOT EXISTS document_version (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
     document_version_id BIGINT NOT NULL COMMENT 'Snowflake document version identifier',
     document_id BIGINT NOT NULL COMMENT 'Snowflake document identifier',
-    version_no INT NOT NULL COMMENT 'Sequential version number',
+    version_no VARCHAR(32) NOT NULL COMMENT 'Semantic version number',
     document_name VARCHAR(255) NOT NULL COMMENT 'Version document name',
     converted_document_name VARCHAR(255) DEFAULT NULL COMMENT 'Converted document name',
     document_path VARCHAR(1024) DEFAULT NULL COMMENT 'Document storage path',
-    content LONGTEXT NOT NULL COMMENT 'Version content snapshot',
+    content LONGTEXT DEFAULT NULL COMMENT 'Version content snapshot',
     document_status VARCHAR(32) NOT NULL DEFAULT 'init' COMMENT 'DocumentStatus code',
     document_type VARCHAR(64) DEFAULT NULL COMMENT 'Document type',
     segment_numbers INT NOT NULL DEFAULT 0 COMMENT 'Version segment count',
-    content_hash CHAR(64) NOT NULL COMMENT 'SHA-256 content hash',
+    source_hash CHAR(64) DEFAULT NULL COMMENT 'SHA-256 original file hash',
+    content_hash CHAR(64) DEFAULT NULL COMMENT 'SHA-256 normalized content hash',
     change_summary VARCHAR(500) DEFAULT NULL COMMENT 'Version change summary',
     source_version_id BIGINT DEFAULT NULL COMMENT 'Rollback source version identifier',
     document_version_status VARCHAR(32) NOT NULL DEFAULT 'active' COMMENT 'DocumentVersionStatus code',
@@ -83,6 +84,8 @@ CREATE TABLE IF NOT EXISTS document_version (
     PRIMARY KEY (id),
     UNIQUE KEY uk_document_version_id (document_version_id),
     UNIQUE KEY uk_document_version_no (document_id, version_no),
+    UNIQUE KEY uk_document_version_content (document_id, content_hash),
+    KEY idx_document_version_source_hash (source_hash),
     KEY idx_document_version_status (document_id, document_version_status),
     KEY idx_document_version_source (source_version_id),
     CONSTRAINT fk_document_version_document FOREIGN KEY (document_id)
@@ -102,6 +105,7 @@ CREATE TABLE IF NOT EXISTS document_segment (
     document_version_id BIGINT NOT NULL COMMENT 'Snowflake document version identifier',
     segment_index INT NOT NULL COMMENT 'Segment order within the version',
     token_count INT DEFAULT NULL COMMENT 'Segment token count',
+    vector_hash CHAR(64) DEFAULT NULL COMMENT 'Embedding input and model fingerprint',
     lock_version INT NOT NULL DEFAULT 1 COMMENT 'Optimistic lock version',
     is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT 'Logical delete flag',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -116,6 +120,40 @@ CREATE TABLE IF NOT EXISTS document_segment (
     CONSTRAINT fk_document_segment_document FOREIGN KEY (document_id)
         REFERENCES knowledge_document (document_id),
     CONSTRAINT fk_document_segment_version FOREIGN KEY (document_version_id)
+        REFERENCES document_version (document_version_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS document_processing_task (
+    id BIGINT NOT NULL COMMENT 'Snowflake task identifier',
+    document_id BIGINT NOT NULL COMMENT 'Snowflake document identifier',
+    document_version_id BIGINT NOT NULL COMMENT 'Snowflake document version identifier',
+    previous_version_id BIGINT DEFAULT NULL COMMENT 'Previous version identifier',
+    previous_version VARCHAR(32) DEFAULT NULL COMMENT 'Previous semantic version',
+    provider VARCHAR(32) NOT NULL DEFAULT 'mineru' COMMENT 'Processing provider',
+    provider_task_id VARCHAR(128) DEFAULT NULL COMMENT 'Provider task identifier',
+    task_type VARCHAR(32) NOT NULL COMMENT 'Document task type',
+    chunk_id BIGINT DEFAULT NULL COMMENT 'Segment identifier for single segment task',
+    input_hash CHAR(64) NOT NULL COMMENT 'Task input SHA-256',
+    model_key VARCHAR(128) DEFAULT NULL COMMENT 'Embedding model identity',
+    idempotency_key CHAR(64) NOT NULL COMMENT 'Task idempotency key',
+    status VARCHAR(32) NOT NULL DEFAULT 'pending' COMMENT 'Task status',
+    stage VARCHAR(32) NOT NULL COMMENT 'Current task stage',
+    attempts INT NOT NULL DEFAULT 0 COMMENT 'Execution attempts',
+    next_poll_at DATETIME DEFAULT NULL COMMENT 'Next execution time',
+    error_message VARCHAR(1000) DEFAULT NULL COMMENT 'Sanitized failure message',
+    lock_version INT NOT NULL DEFAULT 1 COMMENT 'Optimistic lock version',
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT 'Logical delete flag',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by VARCHAR(64) NOT NULL DEFAULT 'system',
+    update_by VARCHAR(64) NOT NULL DEFAULT 'system',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_processing_task_idempotency (idempotency_key),
+    KEY idx_processing_task_due (status, next_poll_at),
+    KEY idx_processing_task_version (document_version_id),
+    CONSTRAINT fk_processing_task_document FOREIGN KEY (document_id)
+        REFERENCES knowledge_document (document_id),
+    CONSTRAINT fk_processing_task_version FOREIGN KEY (document_version_id)
         REFERENCES document_version (document_version_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

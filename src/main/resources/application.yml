@@ -5,7 +5,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${DB_URL:jdbc:mysql://localhost:3306/know_engine?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:root}
+    password: ${DB_PASSWORD:123456}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -13,6 +13,10 @@ spring:
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DATABASE:0}
       timeout: 3s
+  servlet:
+    multipart:
+      max-file-size: ${DOCUMENT_MAX_FILE_SIZE:50MB}
+      max-request-size: ${DOCUMENT_MAX_FILE_SIZE:50MB}
 
 sa-token:
   token-name: Authorization
@@ -44,3 +48,36 @@ mybatis-plus:
 logging:
   level:
     com.cosx.knowengine: info
+
+
+know-engine:
+  document:
+    max-file-size: ${DOCUMENT_MAX_FILE_BYTES:52428800}
+    segment-size: ${DOCUMENT_SEGMENT_SIZE:500}
+    segment-overlap: ${DOCUMENT_SEGMENT_OVERLAP:50}
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_SECRET_KEY:minioadmin}
+    bucket: ${MINIO_BUCKET:know-engine}
+    presigned-expiry: ${MINIO_PRESIGNED_EXPIRY:30m}
+  mineru:
+    base-url: ${MINERU_BASE_URL:https://mineru.net}
+    token: ${MINERU_TOKEN:}
+    poll-interval: ${MINERU_POLL_INTERVAL:5s}
+    timeout: ${MINERU_TIMEOUT:30m}
+  qwen:
+    enabled: ${QWEN_ENABLED:false}
+    api-key: ${QWEN_API_KEY:}
+    base-url: ${QWEN_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    model-name: ${QWEN_EMBEDDING_MODEL:text-embedding-v4}
+    model-version: ${QWEN_EMBEDDING_MODEL_VERSION:v1}
+    dimensions: ${QWEN_EMBEDDING_DIMENSIONS:1024}
+    max-batch-size: ${QWEN_MAX_BATCH_SIZE:10}
+    timeout: ${QWEN_TIMEOUT:30s}
+  elasticsearch:
+    endpoint: ${ES_ENDPOINT:http://localhost:9200}
+    username: ${ES_USERNAME:}
+    password: ${ES_PASSWORD:}
+    index-name: ${ES_DOCUMENT_INDEX:know-document-segments-v1}
+    index-schema-version: ${ES_INDEX_SCHEMA_VERSION:v1}

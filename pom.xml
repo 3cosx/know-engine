@@ -24,6 +24,8 @@
         <sa-token.version>1.46.0</sa-token.version>
         <tika.version>3.2.3</tika.version>
         <elasticsearch-java.version>8.18.6</elasticsearch-java.version>
+        <minio.version>8.5.14</minio.version>
+        <langchain4j.version>1.20.0</langchain4j.version>
     </properties>
 
     <dependencies>
@@ -68,6 +70,26 @@
             <groupId>co.elastic.clients</groupId>
             <artifactId>elasticsearch-java</artifactId>
             <version>${elasticsearch-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <version>${elasticsearch-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>${minio.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+            <version>${langchain4j.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.dev33</groupId>

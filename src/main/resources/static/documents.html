@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文档管理 · 布布助手</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/documents.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('da-theme')==='dark'?'dark':'light');})();</script>
+</head>
+<body>
+<div id="da-documents-app" v-cloak>
+    <div id="da-header-host"></div>
+    <main class="doc-main">
+        <div class="doc-page">
+            <div class="da-page-header">
+                <h2><i class="fas fa-file-lines"></i> 文档管理</h2>
+                <label class="doc-upload" :class="{ active: dragging, disabled: uploading }"
+                       @dragover.prevent="dragging=true" @dragleave.prevent="dragging=false"
+                       @drop.prevent="dropFile" title="上传文档">
+                    <i :class="uploading ? 'fas fa-spinner fa-spin' : 'fas fa-cloud-arrow-up'"></i>
+                    <span>{{ uploading ? '上传中' : '上传文档' }}</span>
+                    <input type="file" :disabled="uploading" @change="selectFile"
+                           accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.html">
+                </label>
+            </div>
+
+            <div class="doc-toolbar">
+                <div class="doc-search">
+                    <i class="fas fa-magnifying-glass"></i>
+                    <input v-model.trim="keyword" @keyup.enter="search" placeholder="搜索文档名称">
+                </div>
+                <select v-model="status" @change="search" aria-label="处理状态">
+                    <option value="">全部状态</option>
+                    <option value="uploaded">已上传</option>
+                    <option value="parsing">解析中</option>
+                    <option value="embedding">向量化中</option>
+                    <option value="vectored">已向量化</option>
+                    <option value="failed">处理失败</option>
+                </select>
+                <button class="doc-icon-btn" @click="loadDocuments" title="刷新" :disabled="loading">
+                    <i class="fas fa-rotate-right" :class="{ 'fa-spin': loading }"></i>
+                </button>
+            </div>
+
+            <div class="doc-table-wrap" v-if="documents.length">
+                <table class="doc-table">
+                    <thead><tr><th>文档</th><th>版本</th><th>状态</th><th>分段</th><th>更新时间</th><th></th></tr></thead>
+                    <tbody>
+                    <tr v-for="doc in documents" :key="doc.documentId" @click="openDocument(doc.documentId)">
+                        <td><div class="doc-name"><i :class="fileIcon(doc.documentType)"></i><span>{{ doc.documentName }}</span></div><small>{{ doc.documentType || '未知类型' }}</small></td>
+                        <td class="doc-mono">{{ doc.version }}</td>
+                        <td><span class="doc-status" :class="statusClass(doc.documentStatus)"><i :class="statusIcon(doc.documentStatus)"></i>{{ doc.documentStatusName }}</span></td>
+                        <td class="doc-mono">{{ doc.segmentNumbers }}</td>
+                        <td>{{ formatDate(doc.updatedAt) }}</td>
+                        <td><button class="doc-row-action" title="查看详情"><i class="fas fa-chevron-right"></i></button></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="doc-empty" v-else-if="!loading"><i class="far fa-folder-open"></i><p>暂无文档</p></div>
+            <div class="doc-empty" v-else><i class="fas fa-spinner fa-spin"></i><p>正在加载</p></div>
+
+            <div class="doc-pagination" v-if="total > 0">
+                <span>共 {{ total }} 项</span>
+                <div>
+                    <button class="doc-icon-btn" @click="previousPage" :disabled="page <= 1" title="上一页"><i class="fas fa-chevron-left"></i></button>
+                    <span>{{ page }} / {{ pages }}</span>
+                    <button class="doc-icon-btn" @click="nextPage" :disabled="page >= pages" title="下一页"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="js/common.js"></script>
+<script src="js/documents.js"></script>
+</body>
+</html>
